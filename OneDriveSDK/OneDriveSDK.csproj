@@ -35,6 +35,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ApiConstants.cs" />
+    <Compile Include="CommandOptions\CancellableRequestOptions.cs" />
     <Compile Include="CommandOptions\ChildrenRetrievalOptions.cs" />
     <Compile Include="CommandOptions\RequestOptions.cs" />
     <Compile Include="CommandOptions\ODataQueryStringParameters.cs" />
@@ -67,7 +68,6 @@
     <Compile Include="Http\HttpFactoryDefault.cs" />
     <Compile Include="Http\WrappedHttpClient.cs" />
     <Compile Include="Http\IHttpRequest.cs" />
-    <Compile Include="Http\WrappedHttpWebRequest.cs" />
     <Compile Include="IAuthenticationInfo.cs" />
     <Compile Include="DataType\ODIdentity.cs" />
     <Compile Include="DataType\ODItem.cs" />

@@ -559,7 +559,7 @@ namespace NewApiBrowser
 
             options = ItemUploadOptions.Default;
             options.CancelToken = tokenSource.Token;
-            options.ProgressReporter = progressDialog.UpdateProgress;
+            options.ProgressDelegate = progressDialog.UpdateProgress;
 
             progressDialog.Show();
         }
@@ -679,25 +679,36 @@ namespace NewApiBrowser
             }
 
             string path = dialog.InputText;
+
+            System.Threading.CancellationTokenSource tokenSource = new System.Threading.CancellationTokenSource();
+            FormTransferProgress uploadForm = new FormTransferProgress(filename, TransferDirection.Upload) { CancelTokenSource = tokenSource };
+            uploadForm.Show();
+
+
             try
             {
                 var newItemReference = ODConnection.ItemReferenceForDrivePath(path);
-                
-                FormTransferProgress uploadForm = new FormTransferProgress(filename, TransferDirection.Upload);
                 var uploadOptions = ItemUploadOptions.Default;
-                uploadOptions.ProgressReporter = uploadForm.UpdateProgress;
+                uploadOptions.ProgressDelegate = uploadForm.UpdateProgress;
+                uploadOptions.CancelToken = tokenSource.Token;
 
-                uploadForm.Show();
                 var newItem = await Connection.UploadLargeFileAsync(newItemReference, stream, uploadOptions);
                 if (null != newItem)
                 {
                     AddItemToFolderContents(newItem);
                 }
-                uploadForm.Close();
+            }
+            catch (OperationCanceledException)
+            {
+
             }
             catch (ODException exception)
             {
                 PresentOneDriveException(exception);
+            }
+            finally
+            {
+                uploadForm.Close();
             }
         }
 

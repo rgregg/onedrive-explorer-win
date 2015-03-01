@@ -2,7 +2,7 @@
 
 namespace OneDrive
 {
-    public class StreamDownloadOptions : RequestOptions
+    public class StreamDownloadOptions : CancellableRequestOptions
     {
         public ContentRange ContentRange 
         {

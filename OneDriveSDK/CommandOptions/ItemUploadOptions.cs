@@ -5,7 +5,7 @@ namespace OneDrive
 
     public delegate void ProgressReportDelegate(int percentComplete, long bytesTransfered, long bytesTotal);
 
-    public class ItemUploadOptions : RequestOptions
+    public class ItemUploadOptions : CancellableRequestOptions
     {
         private long _fragmentSize;
 
@@ -54,17 +54,6 @@ namespace OneDrive
                 _fragmentSize = value;
             }
         }
-
-        /// <summary>
-        /// Allows your app to provide a delegate that is called as the file is uploaded to report progress.
-        /// </summary>
-        public ProgressReportDelegate ProgressReporter { get; set; }
-
-
-        /// <summary>
-        /// Providing a cancellation token allows the upload to be cancellable.
-        /// </summary>
-        public System.Threading.CancellationToken CancelToken { get; set; }
 
 
         /// <summary>

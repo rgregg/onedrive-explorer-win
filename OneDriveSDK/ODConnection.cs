@@ -32,21 +32,21 @@ namespace OneDrive
         #endregion
 
         #region Helper Methods
-        internal async Task<T> DataModelForRequest<T>(Uri uri, string httpMethod) where T : ODDataModel
+        internal async Task<T> DataModelForRequest<T>(Uri uri, string httpMethod, CancellableRequestOptions options = null) where T : ODDataModel
         {
             var request = await CreateHttpRequestAsync(uri, httpMethod);
-            return await DataModelForRequest<T>(request);
+            return await DataModelForRequest<T>(request, options);
         }
 
-        private async Task<T> DataModelForRequest<T>(Http.IHttpRequest request) where T : ODDataModel
+        private async Task<T> DataModelForRequest<T>(Http.IHttpRequest request, CancellableRequestOptions options = null) where T : ODDataModel
         {
-            var response = await GetHttpResponseAsync(request);
+            var response = await GetHttpResponseAsync(request, options);
             return await response.ConvertToDataModel<T>();
         }
 
-        private async Task<ODAsyncTask> AsyncTaskResultForRequest(Http.IHttpRequest request, Uri requestUri)
+        private async Task<ODAsyncTask> AsyncTaskResultForRequest(Http.IHttpRequest request, Uri requestUri, CancellableRequestOptions options = null)
         {
-            var response = await GetHttpResponseAsync(request);
+            var response = await GetHttpResponseAsync(request, options);
             if (response.StatusCode == HttpStatusCode.Accepted)
             {
                 var sourceUrl = new Uri(response.Headers[ApiConstants.LocationHeaderName]);
@@ -88,12 +88,14 @@ namespace OneDrive
             }
         }
 
-        private static async Task<Http.IHttpResponse> GetHttpResponseAsync(Http.IHttpRequest request)
+        private static async Task<Http.IHttpResponse> GetHttpResponseAsync(Http.IHttpRequest request, CancellableRequestOptions options = null)
         {
             Http.IHttpResponse response;
             try
             {
-                response = await request.GetResponseAsync();
+                System.Threading.CancellationToken token = System.Threading.CancellationToken.None;
+                if (null != options) token = options.CancelToken;
+                response = await request.GetResponseAsync(token);
             }
             catch (OperationCanceledException)
             {
@@ -147,7 +149,7 @@ namespace OneDrive
             await writer.FlushAsync();
         }
 
-        private async Task<ODItem> UploadToUrl(Stream sourceFileStream, ItemUploadOptions options, long localItemSize, Uri serviceUri)
+        private async Task<ODItem> UploadToUrl(Uri serviceUri, Stream sourceFileStream, long localItemSize, ItemUploadOptions options)
         {
             var request = await CreateHttpRequestAsync(serviceUri, ApiConstants.HttpPut);
             request.ContentType = ApiConstants.ContentTypeBinary;
@@ -155,25 +157,27 @@ namespace OneDrive
             options.ModifyRequest(request);
 
             Action<long> bytesTransferredUpdate = null;
-            if (options.ProgressReporter != null)
+            if (options.ProgressDelegate != null)
             {
                 bytesTransferredUpdate = new Action<long>(bt =>
                 {
-                    options.ProgressReporter((int)Math.Min(100, (bt / (double)localItemSize) * 100), bt, localItemSize);
+                    options.ProgressDelegate((int)Math.Min(100, (bt / (double)localItemSize) * 100), bt, localItemSize);
                 });
             }
 
-            var requestStream = await request.GetRequestStreamAsync();
             options.CancelToken.ThrowIfCancellationRequested();
 
-            await sourceFileStream.CopyToWithProgressAsync(requestStream, options.CancelToken, bytesTransferredUpdate);
+            await request.SetRequestStreamAsync(sourceFileStream);
 
-            return await GetResponseDataModel<ODItem>(request);
+            //var requestStream = await request.GetRequestStreamAsync();
+            //await sourceFileStream.CopyToWithProgressAsync(requestStream, options.CancelToken, bytesTransferredUpdate);
+
+            return await GetResponseDataModel<ODItem>(request, options);
         }
 
-        private async Task<T> GetResponseDataModel<T>(Http.IHttpRequest request) where T: ODDataModel
+        private async Task<T> GetResponseDataModel<T>(Http.IHttpRequest request, CancellableRequestOptions options) where T: ODDataModel
         {
-            var httpResponse = await GetHttpResponseAsync(request);
+            var httpResponse = await GetHttpResponseAsync(request, options);
             if (null != httpResponse && 
                 (httpResponse.StatusCode == HttpStatusCode.Created 
                 || httpResponse.StatusCode == HttpStatusCode.OK))
@@ -333,30 +337,67 @@ namespace OneDrive
 
         private async Task<ODItem> StartLargeFileTransfer(Uri createSessionUri, Stream sourceFileStream, ItemUploadOptions options)
         {
+            options.CancelToken.ThrowIfCancellationRequested();
+
             var request = await CreateHttpRequestAsync(createSessionUri, ApiConstants.HttpPost);
-            
-            //object requestBody = new { item = new ODUploadSessionDescriptor { FilenameConflictBehavior = options.NameConflict } };
-            //await SerializeObjectToRequestBody(requestBody, request);
+
+            options.CancelToken.ThrowIfCancellationRequested();
+
             var response = await DataModelForRequest<ODUploadSession>(request);
 
+            options.CancelToken.ThrowIfCancellationRequested();
+
             var uploader = new LargeFileUploader(this, response, sourceFileStream, options);
-            var item = await uploader.UploadFileStream();
-            return item;
+            try
+            {
+                var item = await uploader.UploadFileStream();
+                return item;
+            }
+            catch (OperationCanceledException)
+            {
+                if (response != null)
+                {
+                    CancelPendingUploadSession(response);
+                }
+                throw;
+            }
         }
 
+
+        private async void CancelPendingUploadSession(ODUploadSession session)
+        {
+            Uri uploadUrl = new Uri(session.UploadUrl);
+
+            var cancelRequest = await CreateHttpRequestAsync(uploadUrl, ApiConstants.HttpDelete);
+            await cancelRequest.GetResponseAsync();
+        }
 
         #endregion
 
 
-        internal async Task<ODDataModel> PutFileFragment(Uri serviceUri, byte[] fragment, ContentRange requestRange)
+        internal async Task<ODDataModel> PutFileFragment(Uri serviceUri, byte[] fragment, ContentRange requestRange, ItemUploadOptions options)
         {
             var request = await CreateHttpRequestAsync(serviceUri, ApiConstants.HttpPut);
+            options.CancelToken.ThrowIfCancellationRequested();
+
             request.ContentRange = requestRange.ToContentRangeHeaderValue();
 
             var stream = await request.GetRequestStreamAsync();
-            await stream.WriteAsync(fragment, 0, (int)requestRange.BytesInRange);
+            options.CancelToken.ThrowIfCancellationRequested();
 
-            var response = await request.GetResponseAsync();
+            var reportDelegate = new Action<long>((bytesTransfered) => {
+                if (options.ProgressDelegate != null)
+                {
+                    bytesTransfered += requestRange.FirstByteIndex;
+                    int percentComplete = Math.Min((int)(((double)bytesTransfered / requestRange.TotalLengthBytes)) * 100, 100);
+                    options.ProgressDelegate(percentComplete, bytesTransfered, requestRange.TotalLengthBytes);
+                }
+            });
+
+            await stream.WriteWithProgressAsync(fragment, 0, (int)requestRange.BytesInRange, options.CancelToken, reportDelegate);
+            //await stream.WriteAsync(fragment, 0, (int)requestRange.BytesInRange, options.CancelToken);
+
+            var response = await request.GetResponseAsync(options.CancelToken);
             if (response.StatusCode == HttpStatusCode.Accepted)
             {
                 return await response.ConvertToDataModel<ODUploadSession>();

@@ -92,14 +92,14 @@ namespace OneDrive
             var request = await CreateHttpRequestAsync(serviceUri, ApiConstants.HttpGet);
             options.ModifyRequest(request);
 
-            var response = await GetHttpResponseAsync(request);
+            var response = await GetHttpResponseAsync(request, options);
 
             if (response.StatusCode == System.Net.HttpStatusCode.Found)
             {
                 Uri downloadUri = new Uri(response.Headers[ApiConstants.LocationHeaderName]);
                 request = await CreateHttpRequestAsync(downloadUri, ApiConstants.HttpGet);
                 options.ModifyRequest(request);
-                response = await GetHttpResponseAsync(request);
+                response = await GetHttpResponseAsync(request, options);
             }
 
             var responseStream = await response.GetResponseStreamAsync();
@@ -133,7 +133,7 @@ namespace OneDrive
             }
 
             Uri serviceUri = UriForItemReference(itemReference);
-            return await UploadToUrl(sourceFileStream, options, localItemSize, serviceUri);
+            return await UploadToUrl(serviceUri, sourceFileStream, localItemSize, options);
         }
 
         /// <summary>
@@ -165,8 +165,7 @@ namespace OneDrive
 
             string navigationValue = string.Concat(ApiConstants.ChildrenRelationshipName, UrlSeperator, filename, UrlSeperator, ApiConstants.ContentRelationshipName);
             Uri serviceUri = UriForItemReference(parentItemReference, navigationValue);
-            await CreateHttpRequestAsync(serviceUri, ApiConstants.HttpPut);
-            return await UploadToUrl(sourceFileStream, options, localItemSize, serviceUri);
+            return await UploadToUrl(serviceUri, sourceFileStream, localItemSize, options);
         }
 
         /// <summary>

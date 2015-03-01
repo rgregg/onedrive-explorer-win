@@ -23,7 +23,7 @@ namespace OneDrive
         {
             long totalBytes = DataSource.Length;
 
-            var reporter = UploadOptions.ProgressReporter;
+            var reporter = UploadOptions.ProgressDelegate;
             if (null != reporter)
             {
                 int percentComplete = (int)(((double)bytesTrasnfered / totalBytes) * 100.0);
@@ -46,9 +46,10 @@ namespace OneDrive
                 {
                     endPosition = DataSource.Length;
                 }
+
                 await DataSource.ReadAsync(fragmentBuffer, 0, (int)Math.Max(0, endPosition - currentPosition));
 
-                var response = await ExecuteUploadFragment(currentPosition, Math.Max(0, endPosition-1), fragmentBuffer);
+                var response = await ExecuteUploadFragment(currentPosition, Math.Max(0, endPosition-1), fragmentBuffer, UploadOptions);
                 if (response is ODUploadSession)
                 {
                     UploadSession.ApplySessionDelta((ODUploadSession)response);
@@ -72,7 +73,7 @@ namespace OneDrive
         /// <param name="endByte"></param>
         /// <param name="fragment"></param>
         /// <returns></returns>
-        private async Task<ODDataModel> ExecuteUploadFragment(long startByte, long endByte, byte[] fragment)
+        private async Task<ODDataModel> ExecuteUploadFragment(long startByte, long endByte, byte[] fragment, ItemUploadOptions options)
         {
             Uri serviceUri = new Uri(UploadSession.UploadUrl);
             if (endByte > DataSource.Length || startByte > DataSource.Length || endByte <= startByte)
@@ -80,12 +81,14 @@ namespace OneDrive
                 throw new ArgumentException("range can't go past file length");
             }
 
-            ODDataModel responseObject = await Connection.PutFileFragment(serviceUri, fragment, new ContentRange 
+            var range = new ContentRange 
             {
                 FirstByteIndex = startByte, 
                 LastByteIndex = endByte,
-                TotalLengthBytes = DataSource.Length 
-            });
+                TotalLengthBytes = DataSource.Length
+            };
+
+            ODDataModel responseObject = await Connection.PutFileFragment(serviceUri, fragment, range, options);
 
             return responseObject;
         }

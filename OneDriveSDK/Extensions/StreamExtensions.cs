@@ -37,6 +37,23 @@ namespace OneDrive.Extensions
             }
         }
 
+        public static async Task WriteWithProgressAsync(this Stream source, byte[] sourceBuffer, int offset, int length, CancellationToken cancelToken, Action<long> reportBytesTransfered = null, int bufferSize = 64 * 1024)
+        {
+            long bytesTransfered = 0;
+
+            for (int index = offset; index < (offset + length); index += bufferSize)
+            {
+                cancelToken.ThrowIfCancellationRequested();
+
+                int lengthToWrite = Math.Min(bufferSize, (offset + length) - index);
+                await source.WriteAsync(sourceBuffer, index, lengthToWrite);
+                bytesTransfered += lengthToWrite;
+
+                if (reportBytesTransfered != null)
+                    reportBytesTransfered(bytesTransfered);
+            }
+        }
+
         public static bool TryGetLength(this Stream source, out long length)
         {
             try 

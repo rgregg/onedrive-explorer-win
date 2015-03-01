@@ -58,10 +58,12 @@ namespace OneDrive
             // Build the StreamContent if necessary
             
             var client = new HttpClient(Handler);
+            client.DefaultRequestHeaders.ExpectContinue = false;
+
             var message = BuildMessage();
 
             var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancelToken);
-            return new WrappedHttpClientResponse(response);
+            return new WrappedHttpClientResponse(response, cancelToken);
         }
 
         private HttpRequestMessage BuildMessage()
@@ -88,6 +90,7 @@ namespace OneDrive
                     break;
             }
             message.Content = GetContent();
+            
             foreach(var header in Headers)
             {
                 message.Headers.Add(header.Key, header.Value);
@@ -124,9 +127,11 @@ namespace OneDrive
     internal class WrappedHttpClientResponse : Http.IHttpResponse
     {
         private HttpResponseMessage ResponseMessage { get; set; }
-        public WrappedHttpClientResponse(HttpResponseMessage response)
+        private System.Threading.CancellationToken CancelToken { get; set; }
+        public WrappedHttpClientResponse(HttpResponseMessage response, System.Threading.CancellationToken token)
         {
             ResponseMessage = response;
+            CancelToken = token;
         }
 
         public Uri Uri { get { return ResponseMessage.RequestMessage.RequestUri; } }
