@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using OneDrive.Extensions;
 
 namespace OneDrive
 {
@@ -94,6 +95,10 @@ namespace OneDrive
             {
                 response = await request.GetResponseAsync();
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 throw new ODException(ex.Message, ex);
@@ -106,7 +111,6 @@ namespace OneDrive
                     var exception = await response.ToException();
                     throw exception;
             }
-
 
             return response;
         }
@@ -150,8 +154,19 @@ namespace OneDrive
 
             options.ModifyRequest(request);
 
+            Action<long> bytesTransferredUpdate = null;
+            if (options.ProgressReporter != null)
+            {
+                bytesTransferredUpdate = new Action<long>(bt =>
+                {
+                    options.ProgressReporter((int)Math.Min(100, (bt / (double)localItemSize) * 100), bt, localItemSize);
+                });
+            }
+
             var requestStream = await request.GetRequestStreamAsync();
-            await sourceFileStream.CopyWithProgressAsync(requestStream, options.ProgressReporter, localItemSize);
+            options.CancelToken.ThrowIfCancellationRequested();
+
+            await sourceFileStream.CopyToWithProgressAsync(requestStream, options.CancelToken, bytesTransferredUpdate);
 
             return await GetResponseDataModel<ODItem>(request);
         }

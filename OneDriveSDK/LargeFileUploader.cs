@@ -39,6 +39,8 @@ namespace OneDrive
             byte[] fragmentBuffer = new byte[UploadOptions.FragmentSize];
             while (currentPosition < DataSource.Length)
             {
+                UploadOptions.CancelToken.ThrowIfCancellationRequested();
+
                 long endPosition = currentPosition + UploadOptions.FragmentSize;
                 if (endPosition > DataSource.Length)
                 {

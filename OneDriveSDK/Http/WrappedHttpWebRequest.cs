@@ -30,11 +30,22 @@ namespace OneDrive
             return await InternalRequest.GetRequestStreamAsync();
         }
 
+        public async Task SetRequestStreamAsync(Stream inputStream)
+        {
+            var requestStream = await GetRequestStreamAsync();
+            await inputStream.CopyToAsync(requestStream);
+        }
+
         public async Task<Http.IHttpResponse> GetResponseAsync()
         {
             CreateRequest();
             var response = await InternalRequest.GetResponseAsync();
             return new WrappedHttpWebResponse((HttpWebResponse)response);
+        }
+
+        public async Task<Http.IHttpResponse> GetResponseAsync(System.Threading.CancellationToken cancelToken)
+        {
+            return await GetResponseAsync();
         }
 
         private void CreateRequest()

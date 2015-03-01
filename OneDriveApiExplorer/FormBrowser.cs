@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using OneDrive;
+using OneDrive.Extensions;
 
 namespace NewApiBrowser
 {
@@ -466,11 +467,34 @@ namespace NewApiBrowser
             var result = dialog.ShowDialog();
             if (result != System.Windows.Forms.DialogResult.OK) return;
 
-            var stream = await item.GetContentStreamAsync(Connection, StreamDownloadOptions.Default);
-            using (var outputStream = new System.IO.FileStream(dialog.FileName, System.IO.FileMode.Create))
+            long fileLength = item.Size;
+
+            System.Threading.CancellationTokenSource cancelSource = new System.Threading.CancellationTokenSource();
+            FormTransferProgress transferDialog = new FormTransferProgress(item.Name, TransferDirection.Download) { CancelTokenSource = cancelSource };
+            var reportBytesTransfered = new Action<long>((bytesTransfered) => 
             {
-                await stream.CopyToAsync(outputStream);
+                int percentComplete = Math.Min(100, (int)((bytesTransfered / (double)fileLength) * 100.0));
+                transferDialog.UpdateProgress(percentComplete, bytesTransfered, fileLength);
+            });
+
+            transferDialog.Show();
+
+            try
+            {
+                var stream = await item.GetContentStreamAsync(Connection, StreamDownloadOptions.Default);
+                using (var outputStream = new System.IO.FileStream(dialog.FileName, System.IO.FileMode.Create))
+                {
+                    await stream.CopyToWithProgressAsync(outputStream, cancelSource.Token, reportBytesTransfered);
+                }
             }
+            catch (OperationCanceledException)
+            {
+                System.IO.File.Delete(dialog.FileName);
+            }
+
+            transferDialog.Close();
+            transferDialog.Dispose();
+            cancelSource.Dispose();
         }
 
         private void ShowJobStatus()
@@ -503,15 +527,41 @@ namespace NewApiBrowser
             if (null == stream)
                 return;
 
+            System.Threading.CancellationTokenSource tokenSource;
+            FormTransferProgress progressDialog;
+            ItemUploadOptions uploadOptions;
+            ShowProgressDialog(filename, out tokenSource, out progressDialog, out uploadOptions);
             try
             {
-                var uploadedItem = await Connection.PutNewFileToParentItemAsync(targetFolder.ItemReference(), filename, stream, ItemUploadOptions.Default);
+                var uploadedItem = await Connection.PutNewFileToParentItemAsync(targetFolder.ItemReference(), filename, stream, uploadOptions);
                 AddItemToFolderContents(uploadedItem);
             }
             catch (ODException exception)
             {
                 PresentOneDriveException(exception);
             }
+            catch (OperationCanceledException)
+            {
+
+            }
+
+            progressDialog.Close();
+            progressDialog.Dispose();
+            tokenSource.Dispose();
+        }
+
+        private static void ShowProgressDialog(string filename, out System.Threading.CancellationTokenSource tokenSource, out FormTransferProgress progressDialog, out ItemUploadOptions options)
+        {
+            tokenSource = new System.Threading.CancellationTokenSource();
+
+            progressDialog = new FormTransferProgress(filename, TransferDirection.Upload);
+            progressDialog.CancelTokenSource = tokenSource;
+
+            options = ItemUploadOptions.Default;
+            options.CancelToken = tokenSource.Token;
+            options.ProgressReporter = progressDialog.UpdateProgress;
+
+            progressDialog.Show();
         }
 
         private async void replaceSelectedItemToolStripMenuItem_Click(object sender, EventArgs e)
@@ -535,9 +585,14 @@ namespace NewApiBrowser
             if (null == stream)
                 return;
 
+            System.Threading.CancellationTokenSource tokenSource;
+            FormTransferProgress progressDialog;
+            ItemUploadOptions uploadOptions;
+            ShowProgressDialog(filename, out tokenSource, out progressDialog, out uploadOptions);
+
             try
             {
-                var uploadedItem = await Connection.PutContentsAsync(targetItem.ItemReference(), stream, ItemUploadOptions.Default);
+                var uploadedItem = await Connection.PutContentsAsync(targetItem.ItemReference(), stream, uploadOptions);
                 UpdateItemInFolderContents(targetItem, uploadedItem);
                 LoadProperties(uploadedItem);
             }
@@ -545,8 +600,13 @@ namespace NewApiBrowser
             {
                 PresentOneDriveException(exception);
             }
+            catch (OperationCanceledException)
+            {
 
-
+            }
+            progressDialog.Close();
+            progressDialog.Dispose();
+            tokenSource.Dispose();
         }
 
         private async void toPathToolStripMenuItem_Click(object sender, EventArgs e)
@@ -623,7 +683,7 @@ namespace NewApiBrowser
             {
                 var newItemReference = ODConnection.ItemReferenceForDrivePath(path);
                 
-                FormUploadProgress uploadForm = new FormUploadProgress(filename);
+                FormTransferProgress uploadForm = new FormTransferProgress(filename, TransferDirection.Upload);
                 var uploadOptions = ItemUploadOptions.Default;
                 uploadOptions.ProgressReporter = uploadForm.UpdateProgress;
 

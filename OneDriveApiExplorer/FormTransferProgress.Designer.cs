@@ -1,6 +1,6 @@
 ﻿namespace NewApiBrowser
 {
-    partial class FormUploadProgress
+    partial class FormTransferProgress
     {
         /// <summary>
         /// Required designer variable.
@@ -31,6 +31,7 @@
             this.labelFilename = new System.Windows.Forms.Label();
             this.progressBarPercentComplete = new System.Windows.Forms.ProgressBar();
             this.labelProgressString = new System.Windows.Forms.Label();
+            this.buttonCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // labelFilename
@@ -58,18 +59,30 @@
             this.labelProgressString.TabIndex = 2;
             this.labelProgressString.Text = "{0} of {1} bytes transfered";
             // 
-            // FormUploadProgress
+            // buttonCancel
+            // 
+            this.buttonCancel.Location = new System.Drawing.Point(345, 69);
+            this.buttonCancel.Name = "buttonCancel";
+            this.buttonCancel.Size = new System.Drawing.Size(75, 23);
+            this.buttonCancel.TabIndex = 3;
+            this.buttonCancel.Text = "Cancel";
+            this.buttonCancel.UseVisualStyleBackColor = true;
+            this.buttonCancel.Click += new System.EventHandler(this.buttonCancel_Click);
+            // 
+            // FormTransferProgress
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(432, 115);
+            this.ClientSize = new System.Drawing.Size(432, 109);
+            this.Controls.Add(this.buttonCancel);
             this.Controls.Add(this.labelProgressString);
             this.Controls.Add(this.progressBarPercentComplete);
             this.Controls.Add(this.labelFilename);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
-            this.Name = "FormUploadProgress";
+            this.Name = "FormTransferProgress";
             this.Text = "Upload Progress";
+            this.Load += new System.EventHandler(this.FormTransferProgress_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -80,5 +93,6 @@
         private System.Windows.Forms.Label labelFilename;
         private System.Windows.Forms.ProgressBar progressBarPercentComplete;
         private System.Windows.Forms.Label labelProgressString;
+        private System.Windows.Forms.Button buttonCancel;
     }
 }

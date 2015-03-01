@@ -16,8 +16,10 @@ namespace OneDrive.Http
         Dictionary<string, string> Headers { get; }
 
         Task<Stream> GetRequestStreamAsync();
+        Task SetRequestStreamAsync(Stream requestContentStream);
 
         Task<IHttpResponse> GetResponseAsync();
+        Task<IHttpResponse> GetResponseAsync(System.Threading.CancellationToken cancelToken);
     }
 
     public interface IHttpResponse

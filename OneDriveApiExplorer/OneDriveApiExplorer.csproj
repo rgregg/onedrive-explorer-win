@@ -107,11 +107,11 @@
     <Compile Include="FormSyncResults.Designer.cs">
       <DependentUpon>FormSyncResults.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormUploadProgress.cs">
+    <Compile Include="FormTransferProgress.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormUploadProgress.Designer.cs">
-      <DependentUpon>FormUploadProgress.cs</DependentUpon>
+    <Compile Include="FormTransferProgress.Designer.cs">
+      <DependentUpon>FormTransferProgress.cs</DependentUpon>
     </Compile>
     <Compile Include="OneDriveObjectBrowser.cs">
       <SubType>UserControl</SubType>
@@ -151,8 +151,8 @@
     <EmbeddedResource Include="FormSyncResults.resx">
       <DependentUpon>FormSyncResults.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormUploadProgress.resx">
-      <DependentUpon>FormUploadProgress.cs</DependentUpon>
+    <EmbeddedResource Include="FormTransferProgress.resx">
+      <DependentUpon>FormTransferProgress.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="OneDriveObjectBrowser.resx">
       <DependentUpon>OneDriveObjectBrowser.cs</DependentUpon>

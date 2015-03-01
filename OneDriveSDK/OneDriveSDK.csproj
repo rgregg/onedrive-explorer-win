@@ -60,6 +60,7 @@
     <Compile Include="Extensions\ItemCollectionExtensionMethods.cs" />
     <Compile Include="Extensions\ItemExtensionMethods.cs" />
     <Compile Include="Extensions\ItemReferenceExtensionMethods.cs" />
+    <Compile Include="Extensions\StreamExtensions.cs" />
     <Compile Include="Extensions\ThumbnailExtensionMethods.cs" />
     <Compile Include="Extensions\UploadExtensionMethods.cs" />
     <Compile Include="Facets\SharingLinkFacet.cs" />
@@ -99,7 +100,6 @@
     <Compile Include="Utility\EnumExtensionMethods.cs" />
     <Compile Include="Utility\HttpExtensionMethods.cs" />
     <Compile Include="Utility\QueryStringBuilder.cs" />
-    <Compile Include="Utility\StreamExtensionMethods.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Threading.Tasks">

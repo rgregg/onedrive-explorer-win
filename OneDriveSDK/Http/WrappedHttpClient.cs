@@ -19,6 +19,7 @@ namespace OneDrive
                 //AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
                 UseCookies = false
             };
+
         }
 
         public WrappedHttpClientRequest(Uri uri)
@@ -34,7 +35,7 @@ namespace OneDrive
         public string ContentRange { get; set; }
         public string Accept { get; set; }
         public Dictionary<string, string> Headers {get; private set;}
-        private MemoryStream RequestBodyStream {get;set;}
+        private Stream RequestBodyStream {get;set;}
 
         public async Task<Stream> GetRequestStreamAsync()
         {
@@ -42,14 +43,24 @@ namespace OneDrive
             return RequestBodyStream;
         }
 
+        public async Task SetRequestStreamAsync(Stream inputStream)
+        {
+            RequestBodyStream = inputStream;
+        }
+
         public async Task<Http.IHttpResponse> GetResponseAsync()
+        {
+            return await GetResponseAsync(System.Threading.CancellationToken.None);
+        }
+
+        public async Task<Http.IHttpResponse> GetResponseAsync(System.Threading.CancellationToken cancelToken)
         {
             // Build the StreamContent if necessary
             
             var client = new HttpClient(Handler);
             var message = BuildMessage();
 
-            var response = await client.SendAsync(message);
+            var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancelToken);
             return new WrappedHttpClientResponse(response);
         }
 
@@ -86,8 +97,7 @@ namespace OneDrive
             {
                 message.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue(Accept));
             }
-
-            message.RequestUri = Uri;
+                        message.RequestUri = Uri;
             return message;
         }
 
