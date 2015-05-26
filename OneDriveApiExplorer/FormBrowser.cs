@@ -436,6 +436,11 @@ namespace NewApiBrowser
             var cleanAppId = "0000000040131ABA";
             var result = await OneDriveSamples.Picker.FormOneDrivePicker.OpenFileAsync(cleanAppId, true, this);
 
+            if (result == null)
+            {
+                return;
+            }
+
             try
             {
                 var pickedFilesContainer = await result.GetItemsFromSelectionAsync(this.Connection);
@@ -508,7 +513,7 @@ namespace NewApiBrowser
         {
             FormInputDialog dialog = new FormInputDialog("Upload from URL", "Type the URL to save to this folder in OneDrive:");
             var result = dialog.ShowDialog();
-            if (result != System.Windows.Forms.DialogResult.OK)
+            if (result != System.Windows.Forms.DialogResult.OK || String.IsNullOrEmpty(dialog.InputText))
                 return;
 
             Uri remoteUrl = new Uri(dialog.InputText);
