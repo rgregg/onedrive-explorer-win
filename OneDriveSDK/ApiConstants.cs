@@ -52,5 +52,8 @@ namespace OneDrive
         // 320kb is the LCM for 80kb and 64kb which are the optimal fragment alignment sizes. 320kb x 12 = ~4MB per fragment.
         public const long FragmentByteAlignmentBytes = 320 * 1024;
         public const long UploadFragmentSizeBytes = 12 * FragmentByteAlignmentBytes;
+
+        public const int StreamWriterBufferSize = 64 * 1024;
+        public static readonly Encoding ServiceTextEncoding = new System.Text.UTF8Encoding(false);
     }
 }

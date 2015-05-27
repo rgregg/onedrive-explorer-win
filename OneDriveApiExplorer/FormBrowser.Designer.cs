@@ -42,6 +42,7 @@
             this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripSeparator();
             this.createFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveSelectedFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openItemByPathToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem4 = new System.Windows.Forms.ToolStripSeparator();
             this.renameSelectedItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteSelectedItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -61,7 +62,8 @@
             this.getChangesHereToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.searchToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.getDriveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.openItemByPathToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectedItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.batchPatchToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -88,8 +90,8 @@
             this.splitContainer1.Panel2.Controls.Add(this.oneDriveObjectBrowser1);
             this.splitContainer1.Panel2.Controls.Add(this.panel1);
             this.splitContainer1.Panel2.Padding = new System.Windows.Forms.Padding(0, 0, 3, 3);
-            this.splitContainer1.Size = new System.Drawing.Size(800, 542);
-            this.splitContainer1.SplitterDistance = 537;
+            this.splitContainer1.Size = new System.Drawing.Size(929, 565);
+            this.splitContainer1.SplitterDistance = 623;
             this.splitContainer1.SplitterWidth = 3;
             this.splitContainer1.TabIndex = 5;
             // 
@@ -100,7 +102,7 @@
             this.flowLayoutContents.Location = new System.Drawing.Point(3, 42);
             this.flowLayoutContents.Margin = new System.Windows.Forms.Padding(2);
             this.flowLayoutContents.Name = "flowLayoutContents";
-            this.flowLayoutContents.Size = new System.Drawing.Size(534, 497);
+            this.flowLayoutContents.Size = new System.Drawing.Size(620, 520);
             this.flowLayoutContents.TabIndex = 1;
             // 
             // flowLayoutPanelBreadcrumb
@@ -111,7 +113,7 @@
             this.flowLayoutPanelBreadcrumb.Margin = new System.Windows.Forms.Padding(2);
             this.flowLayoutPanelBreadcrumb.Name = "flowLayoutPanelBreadcrumb";
             this.flowLayoutPanelBreadcrumb.Padding = new System.Windows.Forms.Padding(0, 2, 0, 0);
-            this.flowLayoutPanelBreadcrumb.Size = new System.Drawing.Size(534, 42);
+            this.flowLayoutPanelBreadcrumb.Size = new System.Drawing.Size(620, 42);
             this.flowLayoutPanelBreadcrumb.TabIndex = 2;
             this.flowLayoutPanelBreadcrumb.Visible = false;
             // 
@@ -135,21 +137,21 @@
             this.oneDriveObjectBrowser1.Margin = new System.Windows.Forms.Padding(2);
             this.oneDriveObjectBrowser1.Name = "oneDriveObjectBrowser1";
             this.oneDriveObjectBrowser1.SelectedItem = null;
-            this.oneDriveObjectBrowser1.Size = new System.Drawing.Size(257, 464);
+            this.oneDriveObjectBrowser1.Size = new System.Drawing.Size(300, 487);
             this.oneDriveObjectBrowser1.TabIndex = 0;
             // 
             // panel1
             // 
             this.panel1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel1.Location = new System.Drawing.Point(0, 464);
+            this.panel1.Location = new System.Drawing.Point(0, 487);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(257, 75);
+            this.panel1.Size = new System.Drawing.Size(300, 75);
             this.panel1.TabIndex = 1;
             // 
             // progressBar1
             // 
             this.progressBar1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.progressBar1.Location = new System.Drawing.Point(705, 6);
+            this.progressBar1.Location = new System.Drawing.Point(834, 6);
             this.progressBar1.Margin = new System.Windows.Forms.Padding(2);
             this.progressBar1.Name = "progressBar1";
             this.progressBar1.Size = new System.Drawing.Size(92, 15);
@@ -162,13 +164,14 @@
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
+            this.selectedItemToolStripMenuItem,
             this.uploadFileToolStripMenuItem,
             this.pickerToolStripMenuItem,
             this.advancedScenariosToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Padding = new System.Windows.Forms.Padding(4, 2, 0, 6);
-            this.menuStrip1.Size = new System.Drawing.Size(800, 27);
+            this.menuStrip1.Size = new System.Drawing.Size(929, 27);
             this.menuStrip1.TabIndex = 6;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -223,6 +226,13 @@
             this.saveSelectedFileToolStripMenuItem.Size = new System.Drawing.Size(214, 22);
             this.saveSelectedFileToolStripMenuItem.Text = "Download Selected File...";
             this.saveSelectedFileToolStripMenuItem.Click += new System.EventHandler(this.saveSelectedFileToolStripMenuItem_Click);
+            // 
+            // openItemByPathToolStripMenuItem
+            // 
+            this.openItemByPathToolStripMenuItem.Name = "openItemByPathToolStripMenuItem";
+            this.openItemByPathToolStripMenuItem.Size = new System.Drawing.Size(214, 22);
+            this.openItemByPathToolStripMenuItem.Text = "Open item by path";
+            this.openItemByPathToolStripMenuItem.Click += new System.EventHandler(this.openItemByPathToolStripMenuItem_Click);
             // 
             // toolStripMenuItem4
             // 
@@ -344,36 +354,44 @@
             // getChangesHereToolStripMenuItem
             // 
             this.getChangesHereToolStripMenuItem.Name = "getChangesHereToolStripMenuItem";
-            this.getChangesHereToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.getChangesHereToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.getChangesHereToolStripMenuItem.Text = "Get Changes...";
             this.getChangesHereToolStripMenuItem.Click += new System.EventHandler(this.getChangesHereToolStripMenuItem_Click);
             // 
             // searchToolStripMenuItem
             // 
             this.searchToolStripMenuItem.Name = "searchToolStripMenuItem";
-            this.searchToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.searchToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.searchToolStripMenuItem.Text = "Search...";
             this.searchToolStripMenuItem.Click += new System.EventHandler(this.searchToolStripMenuItem_Click);
             // 
             // getDriveToolStripMenuItem
             // 
             this.getDriveToolStripMenuItem.Name = "getDriveToolStripMenuItem";
-            this.getDriveToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.getDriveToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.getDriveToolStripMenuItem.Text = "Get Drive...";
             this.getDriveToolStripMenuItem.Click += new System.EventHandler(this.getDriveToolStripMenuItem_Click);
             // 
-            // openItemByPathToolStripMenuItem
+            // selectedItemToolStripMenuItem
             // 
-            this.openItemByPathToolStripMenuItem.Name = "openItemByPathToolStripMenuItem";
-            this.openItemByPathToolStripMenuItem.Size = new System.Drawing.Size(214, 22);
-            this.openItemByPathToolStripMenuItem.Text = "Open item by path";
-            this.openItemByPathToolStripMenuItem.Click += new System.EventHandler(this.openItemByPathToolStripMenuItem_Click);
+            this.selectedItemToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.batchPatchToolStripMenuItem});
+            this.selectedItemToolStripMenuItem.Name = "selectedItemToolStripMenuItem";
+            this.selectedItemToolStripMenuItem.Size = new System.Drawing.Size(90, 19);
+            this.selectedItemToolStripMenuItem.Text = "Selected Item";
+            // 
+            // batchPatchToolStripMenuItem
+            // 
+            this.batchPatchToolStripMenuItem.Name = "batchPatchToolStripMenuItem";
+            this.batchPatchToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.batchPatchToolStripMenuItem.Text = "Batch Patch";
+            this.batchPatchToolStripMenuItem.Click += new System.EventHandler(this.batchPatchToolStripMenuItem_Click);
             // 
             // FormBrowser
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 569);
+            this.ClientSize = new System.Drawing.Size(929, 592);
             this.Controls.Add(this.progressBar1);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.menuStrip1);
@@ -430,6 +448,8 @@
         private System.Windows.Forms.ToolStripMenuItem renameSelectedItemToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem getDriveToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openItemByPathToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectedItemToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem batchPatchToolStripMenuItem;
     }
 }
 

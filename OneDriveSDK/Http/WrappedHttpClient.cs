@@ -119,7 +119,9 @@ namespace OneDrive
                 RequestBodyStream.Seek(0, SeekOrigin.Begin);
                 content = new StreamContent(RequestBodyStream);
                 if (null != ContentType)
-                    content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(ContentType);
+                {
+                    var added = content.Headers.TryAddWithoutValidation("Content-Type", ContentType);
+                }
                 if (null != ContentRange)
                 {
                     var header = OneDrive.ContentRange.FromContentRangeHeaderValue(ContentRange);

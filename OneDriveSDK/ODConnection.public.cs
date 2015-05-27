@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace OneDrive
 {
@@ -29,12 +31,25 @@ namespace OneDrive
         /// <returns></returns>
         public async Task<ODItem> GetItemAsync(ODItemReference itemReference, ItemRetrievalOptions itemRetrievalOptions)
         {
+            var command = GetItemCommand(itemReference, itemRetrievalOptions);
+            return await DataModelForRequest<ODItem>(command);
+        }
+
+        /// <summary>
+        /// Returns a service command object to retrieve an item from the service
+        /// </summary>
+        /// <param name="itemReference"></param>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        public ServiceCommand GetItemCommand(ODItemReference itemReference, ItemRetrievalOptions options)
+        {
             if (!itemReference.IsValid())
                 throw new ArgumentException("ItemReference was invalid. Requires either an ID or Path");
 
-            var queryParams = ODataOptionsToQueryString(itemRetrievalOptions);
+            var queryParams = ODataOptionsToQueryString(options);
             var serviceUri = UriForItemReference(itemReference, null, queryParams);
-            return await DataModelForRequest<ODItem>(serviceUri, ApiConstants.HttpGet);
+
+            return new ServiceCommand { ServiceUrl = serviceUri, HttpVerb = ApiConstants.HttpGet, ResponseType = typeof(ODItem) };
         }
 
         /// <summary>
@@ -45,12 +60,19 @@ namespace OneDrive
         /// <returns></returns>
         public async Task<ODItemCollection> GetChildrenOfItemAsync(ODItemReference itemReference, ChildrenRetrievalOptions childrenRetrievalOptions)
         {
+            var command = GetChildrenOfItemCommand(itemReference, childrenRetrievalOptions);
+            return await DataModelForRequest<ODItemCollection>(command);
+        }
+
+        public ServiceCommand GetChildrenOfItemCommand(ODItemReference itemReference, ChildrenRetrievalOptions childrenRetrievalOptions)
+        {
             if (!itemReference.IsValid())
                 throw new ArgumentException("ItemReference was invalid. Requires either an ID or Path");
 
             var queryParams = ODataOptionsToQueryString(childrenRetrievalOptions);
             Uri serviceUri = UriForItemReference(itemReference, ApiConstants.ChildrenRelationshipName, queryParams);
-            return await DataModelForRequest<ODItemCollection>(serviceUri, ApiConstants.HttpGet);
+
+            return new ServiceCommand { ServiceUrl = serviceUri, HttpVerb = ApiConstants.HttpGet, ResponseType = typeof(ODItemCollection) };
         }
 
         /// <summary>
@@ -61,12 +83,8 @@ namespace OneDrive
         /// <returns></returns>
         public async Task<ODThumbnailSet[]> GetThumbnailsForItemAsync(ODItemReference itemReference, ThumbnailRetrievalOptions thumbnailOptions)
         {
-            if (!itemReference.IsValid())
-                throw new ArgumentException("ItemReference was invalid. Requires either an ID or Path");
-
-            var queryParams = ODataOptionsToQueryString(thumbnailOptions);
-            Uri serviceUri = UriForItemReference(itemReference, ApiConstants.ThumbnailsRelationshipName, queryParams);
-            var results = await DataModelForRequest<ODCollectionResponse<ODThumbnailSet>>(serviceUri, ApiConstants.HttpGet);
+            var command = GetThumbnailsForItemCommand(itemReference, thumbnailOptions);
+            var results = await DataModelForRequest<ODCollectionResponse<ODThumbnailSet>>(command);
 
             if (null != results && results.Collection != null)
             {
@@ -74,6 +92,16 @@ namespace OneDrive
             }
 
             return null;
+        }
+
+        public ServiceCommand GetThumbnailsForItemCommand(ODItemReference itemReference, ThumbnailRetrievalOptions thumbnailOptions)
+        {
+            if (!itemReference.IsValid())
+                throw new ArgumentException("ItemReference was invalid. Requires either an ID or Path");
+
+            var queryParams = ODataOptionsToQueryString(thumbnailOptions);
+            Uri serviceUri = UriForItemReference(itemReference, ApiConstants.ThumbnailsRelationshipName, queryParams);
+            return new ServiceCommand { ServiceUrl = serviceUri, HttpVerb = ApiConstants.HttpGet, ResponseType = typeof(ODThumbnailSet) };
         }
 
         /// <summary>
@@ -137,18 +165,28 @@ namespace OneDrive
 
         public async Task<ODItem> PutItemAsync(ODItemReference itemReference, ODItem itemProperties)
         {
+            var command = PutItemCommand(itemReference, itemProperties);
+            var item = await DataModelForRequest<ODItem>(command);
+            return item;
+        }
+
+        public ServiceCommand PutItemCommand(ODItemReference itemReference, ODItem itemProperties)
+        {
             if (!itemReference.IsValid())
                 throw new ArgumentException("ItemReference was invalid. Requires either an ID or Path");
 
             Uri serviceUri = UriForItemReference(itemReference);
-            var request = await CreateHttpRequestAsync(serviceUri, ApiConstants.HttpPut);
-            request.ContentType = ApiConstants.ContentTypeJson;
 
-            await SerializeObjectToRequestBody(itemProperties, request);
+            var command = new ServiceCommand
+            {
+                ServiceUrl = serviceUri,
+                HttpVerb = ApiConstants.HttpPut,
+                ResponseType = typeof(ODItem),
+                ContentType = ApiConstants.ContentTypeJson,
+                Body = SerializeObjectToString(itemProperties)
+            };
 
-            var item = await DataModelForRequest<ODItem>(request);
-            return item;
-
+            return command;
         }
 
         /// <summary>
@@ -268,20 +306,29 @@ namespace OneDrive
         /// <returns></returns>
         public async Task<ODItem> CreateFolderAsync(ODItemReference parentItemReference, string newFolderName)
         {
+            var command = CreateFolderCommand(parentItemReference, newFolderName);
+            var item = await DataModelForRequest<ODItem>(command);
+            return item;
+        }
+
+        public ServiceCommand CreateFolderCommand(ODItemReference parentItemReference, string folderName)
+        {
             if (!parentItemReference.IsValid())
                 throw new ArgumentException("parentItemReference was invalid. Requires either an ID or Path");
-            if (string.IsNullOrEmpty(newFolderName)) 
-                throw new ArgumentNullException("newFolderName");
+            if (string.IsNullOrEmpty(folderName))
+                throw new ArgumentNullException("folderName");
 
             Uri serviceUri = UriForItemReference(parentItemReference, ApiConstants.ChildrenRelationshipName);
-            var request = await CreateHttpRequestAsync(serviceUri, ApiConstants.HttpPost);
-            request.ContentType = ApiConstants.ContentTypeJson;
+            var body = new { name = folderName, folder = new { } };
 
-            var body = new { name = newFolderName, folder = new { } };
-            await SerializeObjectToRequestBody(body, request);
-
-            var item = await DataModelForRequest<ODItem>(request);
-            return item;
+            var command = new ServiceCommand {
+                ServiceUrl = serviceUri,
+                HttpVerb = ApiConstants.HttpPost,
+                ContentType = ApiConstants.ContentTypeJson,
+                Body = SerializeObjectToString(body),
+                ResponseType = typeof(ODItem)
+            };
+            return command;
         }
 
         /// <summary>
@@ -292,15 +339,8 @@ namespace OneDrive
         /// <returns></returns>
         public async Task<bool> DeleteItemAsync(ODItemReference itemReference, ItemDeleteOptions options)
         {
-            if (!itemReference.IsValid())
-                throw new ArgumentException("itemReference was invalid. Requires either an ID or Path");
-            if (null == options) 
-                throw new ArgumentNullException("options");
-
-            Uri serviceUri = UriForItemReference(itemReference);
-            var request = await CreateHttpRequestAsync(serviceUri, ApiConstants.HttpDelete);
-            options.ModifyRequest(request);
-
+            var command = DeleteItemCommand(itemReference, options);
+            var request = await CreateHttpRequestAsync(command);
             var response = await GetHttpResponseAsync(request);
             if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
             {
@@ -310,6 +350,25 @@ namespace OneDrive
             {
                 throw await response.ToException();
             }
+        }
+
+        public ServiceCommand DeleteItemCommand(ODItemReference itemReference, ItemDeleteOptions options)
+        {
+            if (!itemReference.IsValid())
+                throw new ArgumentException("itemReference was invalid. Requires either an ID or Path");
+            if (null == options)
+                throw new ArgumentNullException("options");
+
+            Uri serviceUri = UriForItemReference(itemReference);
+
+            var command = new ServiceCommand
+            {
+                ServiceUrl = serviceUri,
+                HttpVerb = ApiConstants.HttpDelete
+            };
+            options.ModifyCommand(command);
+
+            return command;
         }
 
         /// <summary>
@@ -322,13 +381,8 @@ namespace OneDrive
         /// <returns></returns>
         public async Task<ODItem> PatchItemAsync(ODItemReference itemReference, ODItem changes)
         {
-            if (!itemReference.IsValid()) throw new ArgumentException("itemReference is not a valid reference.");
-            if (null == changes) throw new ArgumentNullException("changes");
-
-            Uri serviceUri = UriForItemReference(itemReference);
-            var request = await CreateHttpRequestAsync(serviceUri, ApiConstants.HttpPatch);
-            await SerializeObjectToRequestBody(changes, request);
-
+            var command = PatchItemCommand(itemReference, changes);
+            var request = await CreateHttpRequestAsync(command);
             var response = await GetHttpResponseAsync(request);
             if (response.StatusCode.IsSuccess())
             {
@@ -338,6 +392,25 @@ namespace OneDrive
             {
                 throw await response.ToException();
             }
+        }
+
+        public ServiceCommand PatchItemCommand(ODItemReference itemReference, ODItem changes)
+        {
+            if (!itemReference.IsValid()) throw new ArgumentException("itemReference is not a valid reference.");
+            if (null == changes) throw new ArgumentNullException("changes");
+
+            Uri serviceUri = UriForItemReference(itemReference);
+            var command = new ServiceCommand
+            {
+                ServiceUrl = serviceUri,
+                HttpVerb = ApiConstants.HttpPatch,
+                ContentType = ApiConstants.ContentTypeJson,
+                Body = SerializeObjectToString(changes),
+                ResponseType = typeof(ODItem)
+            };
+
+            return command;
+
         }
 
         /// <summary>
@@ -367,21 +440,59 @@ namespace OneDrive
             return await AsyncTaskResultForRequest(request, serviceUri);
         }
 
+        public ServiceCommand CopyItemCommand(ODItemReference originalItemReference, ODItemReference destinationParentItemReference, string optionalFilename = null)
+        {
+            if (!originalItemReference.IsValid())
+                throw new ArgumentException("originalItemReference");
+            if (!destinationParentItemReference.IsValid())
+                throw new ArgumentException("destinationParentItemReference");
+
+            Uri serviceUri = UriForItemReference(originalItemReference, ApiConstants.CopyItemAction);
+
+            var postBody = new
+            {
+                parentReference = destinationParentItemReference,
+                name = optionalFilename
+            };
+
+
+            var command = new ServiceCommand
+            {
+                ServiceUrl = serviceUri,
+                HttpVerb = ApiConstants.HttpPost,
+                ContentType = ApiConstants.ContentTypeJson,
+                Body = SerializeObjectToString(postBody),
+                ResponseType = typeof(ODAsyncTask)
+            };
+            AddAsyncHeaders(command);
+
+            return command;
+        }
+
         public async Task<ODPermission> CreateSharingLinkAsync(ODItemReference itemReference, OneDrive.Facets.LinkType type)
+        {
+            var command = CreateSharingLinkCommand(itemReference, type);
+            return await DataModelForRequest<ODPermission>(command);
+        }
+
+        public ServiceCommand CreateSharingLinkCommand(ODItemReference itemReference, OneDrive.Facets.LinkType type)
         {
             if (!itemReference.IsValid())
                 throw new ArgumentException("itemReference");
 
             Uri serviceUri = UriForItemReference(itemReference, ApiConstants.CreateLinkAction);
-            var request = await CreateHttpRequestAsync(serviceUri, ApiConstants.HttpPost);
-
             var postBody = new
             {
                 type = type
             };
 
-            await SerializeObjectToRequestBody(postBody, request);
-            return await DataModelForRequest<ODPermission>(request);
+            return new ServiceCommand { 
+                ServiceUrl = serviceUri,
+                HttpVerb = ApiConstants.HttpPost,
+                ContentType = ApiConstants.ContentTypeJson,
+                Body = SerializeObjectToString(postBody),
+                ResponseType = typeof(ODPermission)
+            };
         }
 
         /// <summary>
@@ -443,6 +554,38 @@ namespace OneDrive
 
             var serviceUri = UriForItemReference(driveReference);
             return await DataModelForRequest<ODDrive>(serviceUri, ApiConstants.HttpGet);
+        }
+
+        /// <summary>
+        /// Execute a series of commands and return the result.
+        /// </summary>
+        /// <param name="commands"></param>
+        /// <returns></returns>
+        public async Task<ServiceResponse[]> BatchCommandsAsync(IEnumerable<ServiceCommand> commands)
+        {
+            Uri batchEndpoint = new Uri(RootUrl + "/$batch");
+
+            MultipartBuilder builder = new MultipartBuilder { Format = "multipart/mixed" };
+            var batchCommandRequests = from c in commands
+                                       select new MultipartContent { ContentType = "application/http", TextContent = c.RawHttpRequest() };
+            builder.Parts.AddRange(batchCommandRequests);
+            
+            var request = await CreateHttpRequestAsync(batchEndpoint, ApiConstants.HttpPost);
+            request.ContentType = builder.ContentType;
+
+            var requestStream = await request.GetRequestStreamAsync();
+            await builder.WriteToStreamAsync(requestStream);
+
+            var response = await request.GetResponseAsync();
+
+            var responseStream = await response.GetResponseStreamAsync();
+
+            var parsedResponse = await MultipartParser.ParseStreamAsync(response.ContentType, responseStream);
+            
+            // TODO: Finish this implementation
+
+            return null;
+
         }
     }
 }

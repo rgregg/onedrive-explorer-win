@@ -1,6 +1,8 @@
 ﻿using System;
 using Newtonsoft.Json;
 using System.Net;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace OneDrive
 {
@@ -52,6 +54,35 @@ namespace OneDrive
                 return path;
             else
                 return "/" + path;
+        }
+
+        public static void AppendLine(this System.Text.StringBuilder sb, string format, params object[] parameters)
+        {
+            sb.AppendLine(string.Format(format, parameters));
+        }
+
+        public static string GetToNextSeparator(this string input, string seperator, out string remainingString)
+        {
+            var index = input.IndexOf(seperator);
+            if (index == -1)
+            {
+                remainingString = null;
+                return input;
+            }
+
+            var result = input.Substring(0, index);
+            if (input.Length > index + 1)
+                remainingString = input.Substring(index + 1);
+            else
+                remainingString = null;
+            
+            return result;
+        }
+
+        public static string[] SplitAndTrim(this string input, char character)
+        {
+            string[] values = input.Split(character);
+            return (from v in values select v.Trim()).ToArray();
         }
     }
 }

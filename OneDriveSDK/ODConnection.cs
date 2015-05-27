@@ -44,6 +44,12 @@ namespace OneDrive
             return await DataModelForRequest<T>(request);
         }
 
+        internal async Task<T> DataModelForRequest<T>(ServiceCommand command) where T : ODDataModel
+        {
+            var request = await CreateHttpRequestAsync(command);
+            return await DataModelForRequest<T>(request);
+        }
+
         private async Task<T> DataModelForRequest<T>(Http.IHttpRequest request) where T : ODDataModel
         {
             var response = await GetHttpResponseAsync(request);
@@ -140,14 +146,19 @@ namespace OneDrive
         {
             request.ContentType = ApiConstants.ContentTypeJson;
 
-            var settings = new Newtonsoft.Json.JsonSerializerSettings();
-            settings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
-            var bodyText = Newtonsoft.Json.JsonConvert.SerializeObject(obj, settings);
+            var bodyText = SerializeObjectToString(obj);
 
             var requestStream = await request.GetRequestStreamAsync();
-            var writer = new StreamWriter(requestStream, Encoding.UTF8, 1024 * 1024, true);
+            var writer = new StreamWriter(requestStream, ApiConstants.ServiceTextEncoding, ApiConstants.StreamWriterBufferSize, true);
             await writer.WriteAsync(bodyText);
             await writer.FlushAsync();
+        }
+
+        private string SerializeObjectToString(object obj)
+        {
+            var settings = new Newtonsoft.Json.JsonSerializerSettings();
+            settings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
+            return Newtonsoft.Json.JsonConvert.SerializeObject(obj, settings);
         }
 
         private async Task<ODItem> UploadToUrl(Stream sourceFileStream, ItemUploadOptions options, long localItemSize, Uri serviceUri)
@@ -181,6 +192,30 @@ namespace OneDrive
             var request = HttpRequestFactory.CreateHttpRequest(uri);
             request.Method = httpMethod;
             await AddCommonRequestHeaders(request);
+            return request;
+        }
+
+        private async Task<Http.IHttpRequest> CreateHttpRequestAsync(ServiceCommand command)
+        {
+            var request = HttpRequestFactory.CreateHttpRequest(command.ServiceUrl);
+            request.Method = command.HttpVerb;
+            await AddCommonRequestHeaders(request);
+            foreach (var header in command.HttpHeaders)
+            {
+                request.Headers.Add(header.Key, header.Value);
+            }
+
+            if (command.Body != null)
+            {
+                request.ContentType = command.ContentType;
+                var requestBodyStream = await request.GetRequestStreamAsync();
+                {
+                    var writer = new StreamWriter(requestBodyStream, ApiConstants.ServiceTextEncoding, ApiConstants.StreamWriterBufferSize, true);
+                    await writer.WriteAsync(command.Body);
+                    await writer.FlushAsync();
+                }
+            }
+
             return request;
         }
 
@@ -245,7 +280,6 @@ namespace OneDrive
             StringBuilder url = new StringBuilder(RootUrl);
 
             var extendedReference = itemReference as ODExtendedItemReference;
-
 
             if (!string.IsNullOrEmpty(itemReference.Id))
             {
@@ -330,6 +364,11 @@ namespace OneDrive
         private void AddAsyncHeaders(Http.IHttpRequest request)
         {
             request.Headers[ApiConstants.PreferHeaderName] = ApiConstants.PreferAsyncResponseValue;
+        }
+
+        private void AddAsyncHeaders(ServiceCommand command)
+        {
+            command.HttpHeaders[ApiConstants.PreferHeaderName] = ApiConstants.PreferAsyncResponseValue;
         }
 
         private async Task<ODItem> StartLargeFileTransfer(Uri createSessionUri, Stream sourceFileStream, ItemUploadOptions options)

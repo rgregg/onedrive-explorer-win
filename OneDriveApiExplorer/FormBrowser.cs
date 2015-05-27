@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Linq;
 using OneDrive;
 
 namespace NewApiBrowser
@@ -703,6 +704,15 @@ namespace NewApiBrowser
             var itemRef = ODConnection.ItemReferenceForDrivePath(pathToItem);
 
             await LoadFolderFromReference(itemRef);
+        }
+
+        private async void batchPatchToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var children = this.CurrentFolder.Children;
+            var commands = from c in children.Take(20)
+                           select Connection.GetItemCommand(c.ItemReference(), ItemRetrievalOptions.Default);
+
+            var batchResponse = await Connection.BatchCommandsAsync(commands);
         }
     }
 

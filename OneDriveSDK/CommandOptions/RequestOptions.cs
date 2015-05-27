@@ -52,6 +52,14 @@ namespace OneDrive
             }
         }
 
+        internal virtual void ModifyCommand(ServiceCommand command)
+        {
+            foreach (var header in HeadersToSet)
+            {
+                command.HttpHeaders[header.Key] = header.Value;
+            }
+        }
+
         internal virtual void ModifyQueryString(QueryStringBuilder qsb)
         {
             foreach (var query in QueryStringParameters)
