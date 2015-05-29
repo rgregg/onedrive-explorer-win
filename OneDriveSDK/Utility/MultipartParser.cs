@@ -44,10 +44,11 @@ namespace OneDrive
                     {
                         currentPart.TextContent = currentPartContent.ToString();
                         builder.Parts.Add(currentPart);
-                        currentPart = new MultipartContent();
-                        currentPartContent = new StringBuilder();
-                        readingHeaders = true;
                     }
+                    currentPart = new MultipartContent();
+                    currentPartContent = new StringBuilder();
+                    readingHeaders = true;
+
                 }
                 else if (readingHeaders)
                 {

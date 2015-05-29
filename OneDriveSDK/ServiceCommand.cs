@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,12 +11,14 @@ namespace OneDrive
     {
         public Uri ServiceUrl { get; set; }
         public string HttpVerb { get; set; }
-        public Type ResponseType { get; set; }
+        public Type ResponseDataModelType { get; set; }
 
         public Dictionary<string, string> HttpHeaders { get; private set; }
 
         public string ContentType { get; set; }
         public string Body { get; set; }
+
+        public ODItemReference ItemReference { get; set; }
 
         public ServiceCommand()
         {
@@ -54,26 +57,38 @@ namespace OneDrive
 
     public class ServiceResponse
     {
-        private ServiceResponse()
-        {
+        public Http.IHttpResponse HttpResponse { get; set; }
+        public Type ExpectedDataModelType { get; set; }
 
+        public ServiceCommand OriginalCommand { get; set; }
+
+        internal ServiceResponse(Http.IHttpResponse response, ServiceCommand command)
+        {
+            this.HttpResponse = response;
+            this.ExpectedDataModelType = command.ResponseDataModelType;
+            this.OriginalCommand = command;
         }
 
-        public int StatusCode { get; private set; }
-        public string StatusMessage { get; private set; }
-        public IReadOnlyDictionary<string, string> HttpHeaders { get; private set; }
-
-        public string ContentType { get; private set; }
-        public string Body { get; private set; }
-
-        public static ServiceResponse FromRawHttpResponse(string value)
+        public bool WasError
         {
-            throw new NotImplementedException();
+            get { return HttpResponse.StatusCode >= HttpStatusCode.BadRequest; }
         }
 
-        public T ToDataModel<T>()
+        public async Task<ODError> GetError()
         {
-            throw new NotImplementedException();
+            return await HttpResponse.ConvertToDataModel<ODError>();
         }
+
+        public async Task<ODDataModel> GetDataModel()
+        {
+            ODDataModel model = await HttpResponse.ConvertToDataModel(ExpectedDataModelType);
+            return model;
+        }
+
+        public async Task<T> GetDataModel<T>() where T : ODDataModel
+        {
+            return (T)(await GetDataModel());
+        }
+        
     }
 }

@@ -155,7 +155,7 @@ namespace OneDrive
                     && null != ResponseMessage.Content.Headers
                     && null != ResponseMessage.Content.Headers.ContentType)
                 {
-                    return ResponseMessage.Content.Headers.ContentType.MediaType;
+                    return ResponseMessage.Content.Headers.ContentType.ToString();
                 }
 
                 return null;

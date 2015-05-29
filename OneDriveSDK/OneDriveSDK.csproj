@@ -59,6 +59,7 @@
     <Compile Include="Exceptions\ODSerializationException.cs" />
     <Compile Include="Exceptions\ODServerException.cs" />
     <Compile Include="Extensions\AsyncJobsExtensionMethods.cs" />
+    <Compile Include="Extensions\ErrorExtensionMethods.cs" />
     <Compile Include="Extensions\GenericExtensionMethods.cs" />
     <Compile Include="Extensions\ItemCollectionExtensionMethods.cs" />
     <Compile Include="Extensions\ItemExtensionMethods.cs" />
@@ -68,6 +69,7 @@
     <Compile Include="Facets\SharingLinkFacet.cs" />
     <Compile Include="Http\BackoffHelper.cs" />
     <Compile Include="Http\HttpFactoryDefault.cs" />
+    <Compile Include="Http\HttpParser.cs" />
     <Compile Include="Http\WrappedHttpClient.cs" />
     <Compile Include="Http\IHttpRequest.cs" />
     <Compile Include="Http\WrappedHttpWebRequest.cs" />
@@ -103,6 +105,7 @@
     <Compile Include="ServiceCommand.cs" />
     <Compile Include="SimpleAuthenticationInfo.cs" />
     <Compile Include="SpecialFolder.cs" />
+    <Compile Include="Utility\ArrayExtensionMethods.cs" />
     <Compile Include="Utility\EnumExtensionMethods.cs" />
     <Compile Include="Utility\HttpExtensionMethods.cs" />
     <Compile Include="Utility\MultipartBuilder.cs" />

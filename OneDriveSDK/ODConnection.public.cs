@@ -49,7 +49,7 @@ namespace OneDrive
             var queryParams = ODataOptionsToQueryString(options);
             var serviceUri = UriForItemReference(itemReference, null, queryParams);
 
-            return new ServiceCommand { ServiceUrl = serviceUri, HttpVerb = ApiConstants.HttpGet, ResponseType = typeof(ODItem) };
+            return new ServiceCommand { ServiceUrl = serviceUri, HttpVerb = ApiConstants.HttpGet, ResponseDataModelType = typeof(ODItem), ItemReference = itemReference };
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace OneDrive
             var queryParams = ODataOptionsToQueryString(childrenRetrievalOptions);
             Uri serviceUri = UriForItemReference(itemReference, ApiConstants.ChildrenRelationshipName, queryParams);
 
-            return new ServiceCommand { ServiceUrl = serviceUri, HttpVerb = ApiConstants.HttpGet, ResponseType = typeof(ODItemCollection) };
+            return new ServiceCommand { ServiceUrl = serviceUri, HttpVerb = ApiConstants.HttpGet, ResponseDataModelType = typeof(ODItemCollection), ItemReference = itemReference };
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace OneDrive
 
             var queryParams = ODataOptionsToQueryString(thumbnailOptions);
             Uri serviceUri = UriForItemReference(itemReference, ApiConstants.ThumbnailsRelationshipName, queryParams);
-            return new ServiceCommand { ServiceUrl = serviceUri, HttpVerb = ApiConstants.HttpGet, ResponseType = typeof(ODThumbnailSet) };
+            return new ServiceCommand { ServiceUrl = serviceUri, HttpVerb = ApiConstants.HttpGet, ResponseDataModelType = typeof(ODThumbnailSet), ItemReference = itemReference };
         }
 
         /// <summary>
@@ -181,9 +181,10 @@ namespace OneDrive
             {
                 ServiceUrl = serviceUri,
                 HttpVerb = ApiConstants.HttpPut,
-                ResponseType = typeof(ODItem),
+                ResponseDataModelType = typeof(ODItem),
                 ContentType = ApiConstants.ContentTypeJson,
-                Body = SerializeObjectToString(itemProperties)
+                Body = SerializeObjectToString(itemProperties),
+                ItemReference = itemReference
             };
 
             return command;
@@ -326,7 +327,8 @@ namespace OneDrive
                 HttpVerb = ApiConstants.HttpPost,
                 ContentType = ApiConstants.ContentTypeJson,
                 Body = SerializeObjectToString(body),
-                ResponseType = typeof(ODItem)
+                ResponseDataModelType = typeof(ODItem),
+                ItemReference = parentItemReference
             };
             return command;
         }
@@ -364,7 +366,8 @@ namespace OneDrive
             var command = new ServiceCommand
             {
                 ServiceUrl = serviceUri,
-                HttpVerb = ApiConstants.HttpDelete
+                HttpVerb = ApiConstants.HttpDelete,
+                ItemReference = itemReference
             };
             options.ModifyCommand(command);
 
@@ -406,7 +409,8 @@ namespace OneDrive
                 HttpVerb = ApiConstants.HttpPatch,
                 ContentType = ApiConstants.ContentTypeJson,
                 Body = SerializeObjectToString(changes),
-                ResponseType = typeof(ODItem)
+                ResponseDataModelType = typeof(ODItem),
+                ItemReference = itemReference
             };
 
             return command;
@@ -462,7 +466,8 @@ namespace OneDrive
                 HttpVerb = ApiConstants.HttpPost,
                 ContentType = ApiConstants.ContentTypeJson,
                 Body = SerializeObjectToString(postBody),
-                ResponseType = typeof(ODAsyncTask)
+                ResponseDataModelType = typeof(ODAsyncTask),
+                ItemReference = originalItemReference
             };
             AddAsyncHeaders(command);
 
@@ -491,7 +496,7 @@ namespace OneDrive
                 HttpVerb = ApiConstants.HttpPost,
                 ContentType = ApiConstants.ContentTypeJson,
                 Body = SerializeObjectToString(postBody),
-                ResponseType = typeof(ODPermission)
+                ResponseDataModelType = typeof(ODPermission)
             };
         }
 
@@ -565,9 +570,12 @@ namespace OneDrive
         {
             Uri batchEndpoint = new Uri(RootUrl + "/$batch");
 
+            var commandArray = commands.ToArray();
+
             MultipartBuilder builder = new MultipartBuilder { Format = "multipart/mixed" };
             var batchCommandRequests = from c in commands
                                        select new MultipartContent { ContentType = "application/http", TextContent = c.RawHttpRequest() };
+            
             builder.Parts.AddRange(batchCommandRequests);
             
             var request = await CreateHttpRequestAsync(batchEndpoint, ApiConstants.HttpPost);
@@ -581,11 +589,20 @@ namespace OneDrive
             var responseStream = await response.GetResponseStreamAsync();
 
             var parsedResponse = await MultipartParser.ParseStreamAsync(response.ContentType, responseStream);
-            
-            // TODO: Finish this implementation
 
-            return null;
+            if (parsedResponse.Parts.Count != commands.Count())
+            {
+                throw new InvalidOperationException(string.Format("Expected to get results for {0} commands and got {1} instead.", commands.Count(), parsedResponse.Parts.Count));
+            }
 
+            ServiceResponse[] responses = new ServiceResponse[parsedResponse.Parts.Count];
+            for (int i=0; i<parsedResponse.Parts.Count; i++)
+            {
+                var part = parsedResponse.Parts[i];
+                responses[i] = new ServiceResponse(Http.HttpParser.ParseHttpResponse(part.TextContent), commandArray[i]);
+            }
+
+            return responses;
         }
     }
 }

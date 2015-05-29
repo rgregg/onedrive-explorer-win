@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace OneDrive
@@ -39,20 +40,31 @@ namespace OneDrive
 
         internal static async Task<T> ConvertToDataModel<T>(this Http.IHttpResponse response) where T : ODDataModel
         {
+            return (T)(await ConvertToDataModel(response, typeof(T)));
+        }
+
+        internal static async Task<ODDataModel> ConvertToDataModel(this Http.IHttpResponse response, Type t)
+        {
             using (Stream stream = await response.GetResponseStreamAsync())
             {
                 var reader = new StreamReader(stream);
                 string data = await reader.ReadToEndAsync();
-                T result = data.ConvertToDataModel<T>();
+                
+                ODDataModel result = data.ConvertToDataModel(t);
                 return result;
             }
         }
 
         internal static T ConvertToDataModel<T>(this string jsonString) where T : ODDataModel
         {
+            return (T)ConvertToDataModel(jsonString, typeof(T));
+        }
+
+        internal static ODDataModel ConvertToDataModel(this string jsonString, Type t)
+        {
             try
             {
-                T result = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(jsonString);
+                ODDataModel result = (ODDataModel)Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString, t);
 #if DEBUG
                 result.OriginalJson = jsonString;
 #endif
@@ -62,6 +74,16 @@ namespace OneDrive
             {
                 throw new ODSerializationException(ex.Message, jsonString, ex);
             }
+        }
+
+        internal static string ConvertToHttpResponse(this MultipartContent content)
+        {
+            if (!content.ContentType.Equals("application/http", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("ContentType of part doesn't match expected value");
+            }
+
+            return content.TextContent;
         }
     }
 

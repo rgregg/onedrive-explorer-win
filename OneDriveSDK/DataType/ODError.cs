@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace OneDrive
 {
-    public class ODError : ODErrorDetail
+    public class ODError : ODDataModel
     {
         [JsonProperty("error")]
         public ODErrorDetail Error { get; set; }

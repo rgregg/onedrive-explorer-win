@@ -19,7 +19,7 @@ namespace OneDrive
 
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    return new ODAuthenticationException(null != errorObj ? errorObj.Message : response.StatusDescription)
+                    return new ODAuthenticationException(null != errorObj ? errorObj.Message() : response.StatusDescription)
                     {
                         HttpStatusCode = (int)response.StatusCode,
                         HttpStatusMessage = response.StatusDescription,
@@ -28,7 +28,7 @@ namespace OneDrive
                 }
                 else
                 {
-                    return new ODServerException(null != errorObj ? errorObj.Message : response.StatusDescription)
+                    return new ODServerException(null != errorObj ? errorObj.Message() : response.StatusDescription)
                     {
                         HttpStatusCode = (int)response.StatusCode,
                         HttpStatusMessage = response.StatusDescription,

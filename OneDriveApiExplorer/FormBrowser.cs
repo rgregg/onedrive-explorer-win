@@ -391,7 +391,7 @@ namespace NewApiBrowser
             var serverException = exception as ODServerException;
             if (null != serverException)
             {
-                code = serverException.ServiceError.Code;
+                code = serverException.ServiceError.Error.Code;
                 json = serverException.ServiceError.JsonString();
             }
             
